@@ -1,6 +1,4 @@
 # ***************************************************************************
-# *   Copyright (c) 2017 Markus Hovorka <m.hovorka@live.de>                 *
-# *   Copyright (c) 2020 Bernd Hahnebach <bernd@bimstatik.org>              *
 # *   Copyright (c) 2020 Bjoern Lemp <bl@bplan-gmbh.de>                     *
 # *                                                                         *
 # *   This file is part of the FreeCAD CAx development system.              *
@@ -23,27 +21,61 @@
 # *                                                                         *
 # ***************************************************************************
 
-__title__ = "FreeCAD FEM constraint body heat source ViewProvider for the document object"
-__author__ = "Markus Hovorka, Bernd Hahnebach, Bjoern Lemp"
+__title__ = "FreeCAD FEM constraint body heat source task panel for the document object"
+__author__ = "Bjoern Lemp"
 __url__ = "http://www.freecadweb.org"
 
-## @package view_constraint_bodyheatsource
+## @package task_constraint_bodyheatsource
 #  \ingroup FEM
-#  \brief view provider for the constraint body heat source object
-
-from femtaskpanels import task_constraint_bodyheatsource
-from . import view_base_femconstraint
+#  \brief task panel for constraint body heat source object
 
 
-class VPConstraintBodyHeatSource(view_base_femconstraint.VPBaseFemConstraint):
+import FreeCAD
+import FreeCADGui
+from PySide import QtGui,QtCore
 
-    def getIcon(self):
-        return ":/icons/FEM_ConstraintHeatflux.svg"  # the heatflux icon is used
+from femguiutils import selection_widgets
 
-    def setEdit(self, vobj, mode=0):
-        view_base_femconstraint.VPBaseFemConstraint.setEdit(
-            self,
-            vobj,
-            mode,
-            task_constraint_bodyheatsource._TaskPanel
+class _TaskPanel:
+    def __init__(self, obj):
+        
+        self._obj = obj
+        
+        # geometry selection widget
+        self._selectionWidget = selection_widgets.GeometryElementsSelection(
+            obj.References,
+            ["Solid"]
         )
+                
+        self.form = [self._selectionWidget]
+        
+    def accept(self):
+        FreeCAD.Console.PrintMessage("accept()\n")
+        
+        FreeCAD.Console.PrintMessage(self._obj.References)
+        self._obj.References = self._selectionWidget.references
+        FreeCAD.Console.PrintMessage(self._obj.References)
+        self._recompute_and_set_back_all()
+        
+        
+        return True
+
+    def reject(self):
+        FreeCAD.Console.PrintMessage("reject()\n")
+        self._recompute_and_set_back_all()
+        return True
+
+    def clicked(self, index):
+        FreeCAD.Console.PrintMessage("clicked()\n")
+
+    def open(self):
+        FreeCAD.Console.PrintMessage("open()\n")
+
+    def _recompute_and_set_back_all(self):
+        doc = FreeCADGui.getDocument(self._obj.Document)
+        doc.Document.recompute()
+        self._selectionWidget.setback_listobj_visibility()
+        if self._selectionWidget.sel_server:
+            FreeCADGui.Selection.removeObserver(self._selectionWidget.sel_server)
+        doc.resetEdit()
+
