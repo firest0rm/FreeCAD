@@ -301,7 +301,10 @@ class GeometryElementsSelection(QtGui.QWidget):
         mainLayout.addWidget(self.pushButton_Add)
         mainLayout.addWidget(self.list_References)
         if "Solid" in self.sel_elem_types:
-            mainLayout.addLayout(rbtnLayout)
+            if len(self.sel_elem_types) > 1:
+                mainLayout.addLayout(rbtnLayout)
+            else:
+                self.selection_mode_solid = True
         self.setLayout(mainLayout)
         # signals and slots
         self.list_References.itemSelectionChanged.connect(self.select_clicked_reference_shape)
