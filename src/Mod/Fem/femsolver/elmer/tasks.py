@@ -160,7 +160,13 @@ class Results(run.Results):
         if self.solver.ElmerResult is None:
             self._createResults()
         postPath = self._getResultFile()
-        self.solver.ElmerResult.read(postPath)
+        #EDE: We need to undo the SI-scaling we did at 'writer.py'.
+        if postPath is not None:
+            from . import scaler
+            scaledPath = os.path.join(self.directory, "case0001.scaled.vtu")
+            scaler.ResultScale(postPath, scaledPath)
+            self.solver.ElmerResult.read( scaledPath )
+        #~EDE:    
         self.solver.ElmerResult.getLastPostObject().touch()
         self.solver.Document.recompute()
 

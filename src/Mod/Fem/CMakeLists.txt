@@ -175,6 +175,7 @@ SET(FemSolverCalculix_SRCS
 
 SET(FemSolverElmer_SRCS
     femsolver/elmer/__init__.py
+    femsolver/elmer/scaler.py
     femsolver/elmer/sifio.py
     femsolver/elmer/solver.py
     femsolver/elmer/tasks.py
