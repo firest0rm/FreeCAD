@@ -133,7 +133,10 @@ class GmshTools():
         # mesh boundary layer
         self.bl_setting_list = []  # list of dict, each item map to MeshBoundaryLayer object
         self.bl_boundary_list = []  # to remove duplicated boundary edge or faces
-
+        
+        # mesh scaling factor EDE: used to scale final output mesh
+        self.mesh_scaling_factor = 1.0
+        
         # other initializations
         self.temp_file_geometry = ""
         self.temp_file_mesh = ""
@@ -792,6 +795,10 @@ class GmshTools():
                 "for one material there is no group defined;\n")
         geo.write("// Ignore Physical definitions and save all elements;\n")
         geo.write("Mesh.SaveAll = 1;\n")
+        
+        #EDE: Add scaling factor to output mesh
+        geo.write("Mesh.ScalingFactor = " + str(self.mesh_scaling_factor) + "; // Scale prior to save\n" ) 
+        
         # explicit use double quotes in geo file
         geo.write('Save "{}";\n'.format(self.temp_file_mesh))
         geo.write("\n\n")
