@@ -363,15 +363,19 @@ class Writer(object):
             self._handled(obj)
 
     def _handleHeatBodyForces(self, bodies):
-        obj = self._getSingleMember("Fem::ConstraintBodyHeatSource")
-        if obj is not None:
-            for name in bodies:
-                heatSource = self._getFromUi(obj.HeatSource, "W/kg", "L^2*T^-3")
-                # according Elmer forum W/kg is correct
-                # http://www.elmerfem.org/forum/viewtopic.php?f=7&t=1765
-                # 1 watt = kg * m2 / s3 ... W/kg = m2 / s3
-                self._bodyForce(name, "Heat Source", heatSource)
-            self._handled(obj)
+        for obj in self._getMember("Fem::ConstraintBodyHeatSource"):
+            #Console.PrintMessage("obj: {}\n".format(dir(obj)))
+            if obj.References:
+                for name in obj.References[0][1]:
+                    #Console.PrintMessage("name='{}'\n".format(name))
+                    heatSource = self._getFromUi(obj.HeatSource, "W/kg", "L^2*T^-3")
+                    # according Elmer forum W/kg is correct
+                    # http://www.elmerfem.org/forum/viewtopic.php?f=7&t=1765
+                    # 1 watt = kg * m2 / s3 ... W/kg = m2 / s3
+                    self._bodyForce(name, "Heat Source", heatSource)
+                self._handled(obj)
+            else:
+                Console.PrintMessage("Warning {} ignored! No References selected.\n".format(obj.Label))
 
     def _handleHeatMaterial(self, bodies):
         tempObj = self._getSingleMember("Fem::ConstraintInitialTemperature")
