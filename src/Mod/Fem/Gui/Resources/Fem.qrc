@@ -9,6 +9,7 @@
         <file>icons/FEM_ClippingPlaneRemoveAll.svg</file>
 
         <!-- gui command icons: constraints -->
+        <file>icons/FEM_ConstrainBodyHeat.svg</file>
         <file>icons/FEM_ConstraintBearing.svg</file>
         <file>icons/FEM_ConstraintContact.svg</file>
         <file>icons/FEM_ConstraintDisplacement.svg</file>

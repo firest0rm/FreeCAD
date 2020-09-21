@@ -38,7 +38,7 @@ from . import view_base_femconstraint
 class VPConstraintBodyHeatSource(view_base_femconstraint.VPBaseFemConstraint):
 
     def getIcon(self):
-        return ":/icons/FEM_ConstraintHeatflux.svg"  # the heatflux icon is used
+        return ":/icons/FEM_ConstrainBodyHeat.svg"
 
     def setEdit(self, vobj, mode=0):
         view_base_femconstraint.VPBaseFemConstraint.setEdit(

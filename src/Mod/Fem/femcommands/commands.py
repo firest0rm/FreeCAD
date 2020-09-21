@@ -151,7 +151,7 @@ class _ConstraintBodyHeatSource(CommandManager):
 
     def __init__(self):
         super(_ConstraintBodyHeatSource, self).__init__()
-        self.pixmap = "FEM_ConstraintHeatflux"  # the heatflux icon is used
+        self.pixmap = "FEM_ConstrainBodyHeat"
         self.menuetext = "Constraint body heat source"
         self.tooltip = "Creates a FEM constraint body heat source"
         self.is_active = "with_analysis"
