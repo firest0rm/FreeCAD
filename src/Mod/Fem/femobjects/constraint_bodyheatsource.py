@@ -46,3 +46,18 @@ class ConstraintBodyHeatSource(base_fempythonobject.BaseFemPythonObject):
             "Base",
             "Body heat source"
         )
+        obj.addProperty(
+            "App::PropertyFloat",
+            "Power",
+            "Base",
+            "Body power"
+        )
+
+        obj.addProperty(
+            "App::PropertyEnumeration",
+            "ConstraintType",
+            "Constraint Body Source",
+            "Type of constraint, body heat source or power")
+        
+        obj.ConstraintType = ["HeatSource","Power"]
+            
