@@ -50,26 +50,28 @@ class _TaskPanel:
         self.form = [self._selectionWidget]
         
     def accept(self):
-        FreeCAD.Console.PrintMessage("accept()\n")
+        #FreeCAD.Console.PrintMessage("accept()\n")
         
-        FreeCAD.Console.PrintMessage(self._obj.References)
+        #FreeCAD.Console.PrintMessage(self._obj.References)
         self._obj.References = self._selectionWidget.references
-        FreeCAD.Console.PrintMessage(self._obj.References)
+        #FreeCAD.Console.PrintMessage(self._obj.References)
         self._recompute_and_set_back_all()
         
         
         return True
 
     def reject(self):
-        FreeCAD.Console.PrintMessage("reject()\n")
+        #FreeCAD.Console.PrintMessage("reject()\n")
         self._recompute_and_set_back_all()
         return True
 
     def clicked(self, index):
-        FreeCAD.Console.PrintMessage("clicked()\n")
+        #FreeCAD.Console.PrintMessage("clicked()\n")
+        pass
 
     def open(self):
-        FreeCAD.Console.PrintMessage("open()\n")
+        #FreeCAD.Console.PrintMessage("open()\n")
+        pass
 
     def _recompute_and_set_back_all(self):
         doc = FreeCADGui.getDocument(self._obj.Document)
