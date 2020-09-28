@@ -353,6 +353,70 @@ class GeometryElementsSelection(QtGui.QWidget):
         if self.list_References.count() > 0:
             self.list_References.setCurrentItem(self.list_References.item(current_row))
 
+    def showPreselect(self, action):
+        FreeCAD.Console.PrintMessage(
+            "Hovered {}\n"
+            .format(action.text())
+        )
+        text = action.text().split('.')
+        
+        FreeCADGui.Selection.clearSelection()
+        doc = FreeCAD.activeDocument()
+        obj = doc.getObject(text[0])
+        
+        # selection of Solids of Compounds or CompSolids is not possible
+        # because a Solid is no Subelement
+        # since only Subelements can be selected
+        # we're going to select all Faces of said Solids
+        # the method getElement(element)doesn't return Solid elements
+        solid = geomtools.get_element(obj, text[1])
+        if not solid:
+            return
+        faces = []
+        for fs in solid.Faces:
+            # find these faces in obj
+            for i, fref in enumerate(obj.Shape.Faces):
+                if fs.isSame(fref):
+                    fref_elstring = "Face" + str(i + 1)
+                    if fref_elstring not in faces:
+                        faces.append(fref_elstring)
+        for f in faces:
+            FreeCAD.Console.PrintMessage("{} ".format(f))
+            FreeCADGui.Selection.addSelection(obj, f)
+        FreeCAD.Console.PrintMessage("\n")
+        doc.recompute()
+
+    def restoreUserSettings(self):
+        FreeCAD.Console.PrintMessage( "restore...\n")
+           
+    def saveUserSettings(self):
+        FreeCAD.Console.PrintMessage("save...\n")
+
+    def user_single_solid_selector(self, refs):
+        self.setback_listobj_visibility()
+        if self.sel_server:
+            FreeCADGui.Selection.removeObserver(self.sel_server)
+            self.sel_server = None
+        if not self.sel_server:
+            menu = QtGui.QMenu()
+            for ref in refs:
+                menu.addAction( ref[0].Name + "." + ref[1] )
+            
+            # highlighting doesn't work at this place!? Must invest more time for this
+            #menu.hovered.connect(self.showPreselect)   
+            #menu.aboutToHide.connect(self.restoreUserSettings)
+            #menu.aboutToShow.connect(self.saveUserSettings)
+            act = menu.exec_(QtGui.QCursor.pos())
+            if act==None:
+                return None
+            
+            text = act.text().split('.')
+            for ref in refs:
+                if ref[1] == text[1]:
+                    if ref[0].Name == text[0]:
+                        return ref
+            return None
+        
     def select_clicked_reference_shape(self):
         self.setback_listobj_visibility()
         if self.sel_server:
@@ -476,40 +540,25 @@ class GeometryElementsSelection(QtGui.QWidget):
             elt = sobj.Shape.getElement(selection[1])
             ele_ShapeType = elt.ShapeType
             if self.selection_mode_solid and "Solid" in self.sel_elem_types:
-                # in solid selection mode use edges and faces for selection of a solid
-                # adapt selection variable to hold the Solid
-                solid_to_add = None
-                if ele_ShapeType == "Edge":
-                    found_eltedge_in_other_solid = False
-                    for i, s in enumerate(sobj.Shape.Solids):
-                        for e in s.Edges:
-                            if elt.isSame(e):
-                                if found_eltedge_in_other_solid is False:
-                                    solid_to_add = str(i + 1)
-                                else:
-                                    # could be more than two solids, think of polar pattern
-                                    FreeCAD.Console.PrintMessage(
-                                        "    Edge belongs to at least two solids: "
-                                        " Solid{}, Solid{}\n"
-                                        .format(solid_to_add, str(i + 1))
-                                    )
-                                    solid_to_add = None
-                                found_eltedge_in_other_solid = True
-                elif ele_ShapeType == "Face":
-                    found_eltface_in_other_solid = False
-                    for i, s in enumerate(sobj.Shape.Solids):
-                        for e in s.Faces:
-                            if elt.isSame(e):
-                                if not found_eltface_in_other_solid:
-                                    solid_to_add = str(i + 1)
-                                else:
-                                    # AFAIK (bernd) a face can only belong to two solids
-                                    FreeCAD.Console.PrintMessage(
-                                        "    Face belongs to two solids: Solid{}, Solid{}\n"
-                                        .format(solid_to_add, str(i + 1))
-                                    )
-                                    solid_to_add = None
-                                found_eltface_in_other_solid = True
+                solid_list = geomtools.find_matching_solids(sobj.Shape, elt)
+                #FreeCAD.Console.PrintMessage(
+                #    "All matching solids: {}"
+                #    .format(solid_list)
+                #)
+                if len(solid_list)==0:
+                    return
+                elif len(solid_list)==1:
+                    solid_to_add = solid_list[0]
+                else:
+                    # user have to select only one solid -> show opportunities
+                    refs = []
+                    for s in solid_list:
+                        refs.append( (sobj, "Solid" + str(s)) )
+                    ref = self.user_single_solid_selector(refs)
+                    if not ref:
+                        return
+                    solid_to_add = ref[1][5:]
+                
                 if solid_to_add:
                     selection = (sobj, "Solid" + solid_to_add)
                     ele_ShapeType = "Solid"
@@ -519,6 +568,60 @@ class GeometryElementsSelection(QtGui.QWidget):
                     )
                 else:
                     return
+#                # in solid selection mode use edges and faces for selection of a solid
+#                # adapt selection variable to hold the Solid
+#                solid_to_add = None
+#                if ele_ShapeType == "Edge":
+#                    found_eltedge_in_other_solid = False
+#                    for i, s in enumerate(sobj.Shape.Solids):
+#                        for e in s.Edges:
+#                            if elt.isSame(e):
+#                                if found_eltedge_in_other_solid is False:
+#                                    solid_to_add = str(i + 1)
+#                                else:
+#                                    # could be more than two solids, think of polar pattern
+#                                    FreeCAD.Console.PrintMessage(
+#                                        "    Edge belongs to at least two solids: "
+#                                        " Solid{}, Solid{}\n"
+#                                        .format(solid_to_add, str(i + 1))
+#                                    )
+#                                    solid_to_add = None
+#                                found_eltedge_in_other_solid = True
+#                elif ele_ShapeType == "Face":
+#                    found_eltface_in_other_solid = False
+#                    for i, s in enumerate(sobj.Shape.Solids):
+#                        for e in s.Faces:
+#                            if elt.isSame(e):
+#                                if not found_eltface_in_other_solid:
+#                                    solid_to_add = str(i + 1)
+#                                else:
+#                                    # AFAIK (bernd) a face can only belong to two solids
+#                                    FreeCAD.Console.PrintMessage(
+#                                        "    Face belongs to two solids: Solid{}, Solid{}\n"
+#                                        .format(solid_to_add, str(i + 1))
+#                                    )
+#                                    #solid_to_add = None
+#                                    # bl 
+#                                    menu = QtGui.QMenu()
+#                                    menu.addAction("Solid" + solid_to_add)
+#                                    menu.addAction("Solid" + str(i + 1))
+#                                    ret = menu.exec_(QtGui.QCursor.pos())
+#                                    if ret != None:
+#                                        solid_to_add = ret.text()[5:]                                    
+#                                    else:
+#                                        solid_to_add = None
+#                                    del(menu)
+#                                    # bl end
+#                                found_eltface_in_other_solid = True
+#                if solid_to_add:
+#                    selection = (sobj, "Solid" + solid_to_add)
+#                    ele_ShapeType = "Solid"
+#                    FreeCAD.Console.PrintMessage(
+#                        "    Selection variable adapted to hold the Solid: {}  {}  {}\n"
+#                        .format(sobj.Shape.ShapeType, sobj.Name, selection[1])
+#                    )
+#                else:
+#                    return
             if ele_ShapeType in self.sel_elem_types:
                 if (self.selection_mode_solid and ele_ShapeType == "Solid") \
                         or self.selection_mode_solid is False:
@@ -589,6 +692,10 @@ class FemSelectionObserver:
         FreeCAD.Console.PrintMessage(print_message + "!\n")
 
     def addSelection(self, docName, objName, sub, pos):
+        #FreeCAD.Console.PrintMessage(
+        #    "docName={}, objName={}, sub={}\n"
+        #    .format(docName, objName, sub)
+        #)
         selected_object = FreeCAD.getDocument(docName).getObject(objName)  # get the obj objName
         self.added_obj = (selected_object, sub)
         # on double click on a vertex of a solid sub is None and obj is the solid

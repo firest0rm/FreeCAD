@@ -236,3 +236,25 @@ def get_cylindrical_coords(
     b_y = base[1] - 10 * vec[1]
     b_z = base[2] - 10 * vec[2]
     return (a_x, a_y, a_z, b_x, b_y, b_z)
+
+
+# ************************************************************************************************
+def find_matching_solids(
+    aShape,
+    anElement
+):
+
+    solid_list = []
+    if anElement.ShapeType == "Edge":
+        for index, solid in enumerate(aShape.Solids):
+            for e in solid.Edges:
+                if anElement.isSame(e):
+                    solid_list.append( str(index+1) )
+                
+    elif anElement.ShapeType == "Face":
+        for index, solid in enumerate(aShape.Solids):
+            for e in solid.Faces:
+                if anElement.isSame(e):
+                    solid_list.append( str(index+1) )
+    
+    return solid_list
