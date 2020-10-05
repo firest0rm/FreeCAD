@@ -69,7 +69,7 @@ class Writer(object):
         self.analysis = solver.getParentGroup()
         self.solver = solver
         self.directory = directory
-        Console.PrintMessage("Write elmer input files to: {}".format(self.directory))
+        Console.PrintMessage("Write elmer input files to: {}\n".format(self.directory))
         self.testmode = testmode
         self._usedVarNames = set()
         self._builder = sifio.Builder()
@@ -254,6 +254,7 @@ class Writer(object):
                 for body in activeIn:
                     self._addSolver(body, solverSection)
         if activeIn:
+            #Console.PrintMessage("activeIn '{}'\n".format(activeIn))
             self._handleHeatConstants()
             self._handleHeatBndConditions()
             self._handleHeatInitial(activeIn)
@@ -309,16 +310,43 @@ class Writer(object):
                 self._initial(name, "Temperature", temp)
             self._handled(obj)
 
+    def _getBodyVolumeSI(self, name):
+        if name.startswith("Solid"):
+            index = int(name.lstrip("Solid")) - 1
+            
+            obj = self._getSingleMember("Fem::FemMeshObject")
+            if index >= len(obj.Part.Shape.Solids):
+                raise WriteError(
+                    "Index out of range. "
+                    "This Solid (Solid{}) does not exist in the Fem::FemMeshObject!".format(index+1)
+                )
+                return None
+            else:
+                vol = Units.Quantity(obj.Part.Shape.Solids[index].Volume, Units.Volume)
+                return float(vol.getValueAs("m^3"))
+
     def _handleHeatBodyForces(self, bodies):
         for obj in self._getMember("Fem::ConstraintBodyHeatSource"):
-            #Console.PrintMessage("obj: {}\n".format(dir(obj)))
+            #Console.PrintMessage("obj: {}\n".format(obj))
             if obj.References:
                 for name in obj.References[0][1]:
-                    #Console.PrintMessage("name='{}'\n".format(name))
-                    heatSource = self._getFromUi(obj.HeatSource, "W/kg", "L^2*T^-3")
-                    # according Elmer forum W/kg is correct
-                    # http://www.elmerfem.org/forum/viewtopic.php?f=7&t=1765
-                    # 1 watt = kg * m2 / s3 ... W/kg = m2 / s3
+                    if obj.ConstraintType == "HeatSource":
+                        #Console.PrintMessage("name='{}'\n".format(name))
+                        heatSource = self._getFromUi(obj.HeatSource, "W/kg", "L^2*T^-3")
+                        # according Elmer forum W/kg is correct
+                        # http://www.elmerfem.org/forum/viewtopic.php?f=7&t=1765
+                        # 1 watt = kg * m2 / s3 ... W/kg = m2 / s3
+                    elif obj.ConstraintType == "Power":
+                        m = self._getBodyMaterial(name)
+                        if not m:
+                            raise WriteError("{} has no material".format(name))
+                        density = self._getDensity(m.Material)
+                        power = self._getFromUi(obj.Power, "W", "M*L^2*T^-3")
+                        volume = self._getBodyVolumeSI(name)
+                        heatSource = power / (density * volume)
+                        Console.PrintMessage("heatSource: {} = {} / ( {} * {} )\n"
+                                .format(heatSource, power, density, volume)
+                                )
                     self._bodyForce(name, "Heat Source", heatSource)
                 self._handled(obj)
             else:
